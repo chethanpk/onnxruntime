@@ -43,6 +43,9 @@ onnxruntime_add_static_library(onnxruntime_mlas
   ${MLAS_SRC_DIR}/cast.cpp
   ${MLAS_SRC_DIR}/rotary_embedding.h
   ${MLAS_SRC_DIR}/rotary_embedding.cpp
+  ${MLAS_SRC_DIR}/rotary_embedding_kernel_avx2.h
+  ${MLAS_SRC_DIR}/rotary_embedding_kernel_avx2.cpp
+  ${MLAS_SRC_DIR}/rotary_embedding_kernel_avx2_fp32.cpp
 )
 
 target_sources(onnxruntime_mlas PRIVATE
