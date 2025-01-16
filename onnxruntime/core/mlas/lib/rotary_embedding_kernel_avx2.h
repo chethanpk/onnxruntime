@@ -6,12 +6,12 @@ Licensed under the MIT License.
 
 Module Name:
 
-    rotary_embedding_kernel_neon.h
+    rotary_embedding_kernel_avx2.h
 
 Abstract:
 
     This module includes function declarations and common helper functions for
-    rotary embedding on ARM cpu.
+    rotary embedding on for AVX2 enabled h/w.
 
 --*/
 

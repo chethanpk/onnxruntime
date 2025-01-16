@@ -6,11 +6,11 @@ Licensed under the MIT License.
 
 Module Name:
 
-    rotary_embedding_kernel_neon.cpp
+    rotary_embedding_kernel_avx2.cpp
 
 Abstract:
 
-    This module implements the rotary embedding kernels for ARM NEON.
+    This module implements the rotary embedding kernels for AVX2 supported h/w.
 
 --*/
 
