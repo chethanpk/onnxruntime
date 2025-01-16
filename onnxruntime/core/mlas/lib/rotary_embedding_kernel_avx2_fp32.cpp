@@ -95,31 +95,30 @@ RopeKernel_Avx2_Impl<true>(
         float32x8_t cos_val = _mm256_loadu_ps(cos + i);
         float32x8_t real_out = _mm256_fmsub_ps(real, cos_val, _mm256_mul_ps(imag, sin_val));
         float32x8_t imag_out = _mm256_fmadd_ps(real, sin_val, _mm256_mul_ps(imag, cos_val));
-        float32x8_t y0 = _mm256_unpacklo_ps(real_out, imag_out);
-        float32x8_t y1 = _mm256_unpackhi_ps(real_out, imag_out);
-        _mm256_store_ps(output + i, y0);
-        _mm256_store_ps(output + i + 8, y1);
+        float32x8_t y0 = _mm256_permutex2var_ps(real_out, _mm256_set_epi32(11, 3, 10, 2, 9, 1, 8, 0), imag_out);
+        float32x8_t y1 = _mm256_permutex2var_ps(real_out, _mm256_set_epi32(15, 7, 14, 6, 13, 5, 12, 4), imag_out);
+        _mm256_maskstore_ps(output + i, mask0, y0);
+        _mm256_maskstore_ps(output + i + 8, mask1, y1);
     }
     if (dim - i != 0) {
-        size_t rem = (dim - i)/2;
+        size_t rem = dim - i;
         static const int32_t mask_buffer[16] = {-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0};
-        const __m256i mask = _mm256_loadu_si256((const __m256i*)(mask_buffer + 8 - rem));
-        float32x8_t x0 = _mm256_maskload_ps(input + i, mask);
-        float32x8_t x1 = _mm256_maskload_ps(input + i + rem, mask);
-        const int real_mask[8] = {0, 2, 4, 6, 8, 10, 12, 14};
-        const int imag_mask[8] = {1, 3, 5, 7, 9, 11, 13, 15};
-        __m256i real_mask_vec = _mm256_loadu_si256((__m256i*)real_mask);
-        __m256i imag_mask_vec = _mm256_loadu_si256((__m256i*)imag_mask);
+        const __m256i mask0 = _mm256_loadu_si256((const __m256i*)(mask_buffer + 8 - (rem>8?8:rem)));
+        const __m256i mask1 = _mm256_loadu_si256((const __m256i*)(mask_buffer + 8 - (rem>8?(rem-8):0)));
+        float32x8_t x0 = _mm256_maskload_ps(input + i, mask0);
+        float32x8_t x1 = _mm256_maskload_ps(input + i + 8, mask1);
+        __m256i real_mask_vec = _mm256_set_epi32(14, 12, 10, 8, 6, 4, 2, 0);  //_mm256_loadu_si256((__m256i*)real_mask);
+        __m256i imag_mask_vec = _mm256_set_epi32(15, 13, 11, 9, 7, 5, 3, 1);  //_mm256_loadu_si256((__m256i*)imag_mask);
         float32x8_t real = _mm256_permutex2var_ps(x0, real_mask_vec, x1);
         float32x8_t imag = _mm256_permutex2var_ps(x0, imag_mask_vec, x1);
         float32x8_t sin_val = _mm256_loadu_ps(sin + i);
         float32x8_t cos_val = _mm256_loadu_ps(cos + i);
         float32x8_t real_out = _mm256_fmsub_ps(real, cos_val, _mm256_mul_ps(imag, sin_val));
         float32x8_t imag_out = _mm256_fmadd_ps(real, sin_val, _mm256_mul_ps(imag, cos_val));
-        float32x8_t y0 = _mm256_unpacklo_ps(real_out, imag_out);
-        float32x8_t y1 = _mm256_unpackhi_ps(real_out, imag_out);
-        _mm256_maskstore_ps(output + i, mask, y0);
-        _mm256_maskstore_ps(output + i + rem, mask, y1);
+        float32x8_t y0 = _mm256_permutex2var_ps(real_out, _mm256_set_epi32(11, 3, 10, 2, 9, 1, 8, 0), imag_out);
+        float32x8_t y1 = _mm256_permutex2var_ps(real_out, _mm256_set_epi32(15, 7, 14, 6, 13, 5, 12, 4), imag_out);
+        _mm256_maskstore_ps(output + i, mask0, y0);
+        _mm256_maskstore_ps(output + i + 8, mask1, y1);
     }
 }
 
