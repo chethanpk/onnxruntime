@@ -16,7 +16,6 @@ Abstract:
 
 #include <cassert>
 
-#include "fp16_common.h"
 #include "rotary_embedding.h"
 #include "rotary_embedding_kernel_avx2.h"
 
@@ -88,20 +87,26 @@ RopeKernel_Avx2_Impl<true>(
 ) {
     size_t i = 0;
     for (; i + 15 < dim; i += 16) {
+        printf("Big block interleaved\n");
         float32x8_t x0 = _mm256_loadu_ps(input + i);
         float32x8_t x1 = _mm256_loadu_ps(input + i + 8);
-        __m256i real_mask_vec = _mm256_set_epi32(14, 12, 10, 8, 6, 4, 2, 0);  //Create a mask to load real values from interleaved input
-        __m256i imag_mask_vec = _mm256_set_epi32(15, 13, 11, 9, 7, 5, 3, 1);  //Create a mask to load imaginary values from interleaved input
-        float32x8_t real = _mm256_permutex2var_ps(x0, real_mask_vec, x1);
-        float32x8_t imag = _mm256_permutex2var_ps(x0, imag_mask_vec, x1);
+        //Load imaginary and real values to seperate non-interleaved vectors
+        float32x8_t real_s = _mm256_shuffle_ps(x0, x1, 0b10001000);
+        float32x8_t imag_s = _mm256_shuffle_ps(x0, x1, 0b11011101);
+        __m256i in_mask_vec = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+        float32x8_t real = _mm256_permutevar8x32_ps(real_s, in_mask_vec);
+        float32x8_t imag = _mm256_permutevar8x32_ps(imag_s, in_mask_vec);
         float32x8_t sin_val = _mm256_loadu_ps(sin + i);
         float32x8_t cos_val = _mm256_loadu_ps(cos + i);
         //Compute Real and Imaginary output values
         float32x8_t real_out = _mm256_fmsub_ps(real, cos_val, _mm256_mul_ps(imag, sin_val));
         float32x8_t imag_out = _mm256_fmadd_ps(real, sin_val, _mm256_mul_ps(imag, cos_val));
         //Store back into interleaved format
-        float32x8_t y0 = _mm256_permutex2var_ps(real_out, _mm256_set_epi32(11, 3, 10, 2, 9, 1, 8, 0), imag_out);
-        float32x8_t y1 = _mm256_permutex2var_ps(real_out, _mm256_set_epi32(15, 7, 14, 6, 13, 5, 12, 4), imag_out);
+        __m256i out_mask_vec = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+        float32x8_t real_out_s = _mm256_permutevar8x32_ps(real_out, out_mask_vec);
+        float32x8_t imag_out_s = _mm256_permutevar8x32_ps(imag_out, out_mask_vec);
+        float32x8_t y0 = _mm256_unpacklo_ps(real_out_s, imag_out_s);
+        float32x8_t y1 = _mm256_unpackhi_ps(real_out_s, imag_out_s);
         _mm256_store_ps(output + i, y0);
         _mm256_store_ps(output + i + 8, y1);
     }
@@ -112,18 +117,23 @@ RopeKernel_Avx2_Impl<true>(
         const __m256i mask1 = _mm256_loadu_si256((const __m256i*)(mask_buffer + 8 - (rem>8?(rem-8):0)));
         float32x8_t x0 = _mm256_maskload_ps(input + i, mask0);   //Load the first set of data using mask
         float32x8_t x1 = _mm256_maskload_ps(input + i + 8, mask1); //Load the reminder of data using a second mask
-        __m256i real_mask_vec = _mm256_set_epi32(14, 12, 10, 8, 6, 4, 2, 0);  //Create a mask to load real values from interleaved input
-        __m256i imag_mask_vec = _mm256_set_epi32(15, 13, 11, 9, 7, 5, 3, 1);  //Create a mask to load imaginary values from interleaved input
-        float32x8_t real = _mm256_permutex2var_ps(x0, real_mask_vec, x1);
-        float32x8_t imag = _mm256_permutex2var_ps(x0, imag_mask_vec, x1);
+        //Load imaginary and real values to seperate non-interleaved vectors
+        float32x8_t real_s = _mm256_shuffle_ps(x0, x1, 0b10001000);
+        float32x8_t imag_s = _mm256_shuffle_ps(x0, x1, 0b11011101);
+        __m256i in_mask_vec = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+        float32x8_t real = _mm256_permutevar8x32_ps(real_s, in_mask_vec);
+        float32x8_t imag = _mm256_permutevar8x32_ps(imag_s, in_mask_vec);
         float32x8_t sin_val = _mm256_loadu_ps(sin + i);
         float32x8_t cos_val = _mm256_loadu_ps(cos + i);
         //Compute Real and Imaginary output values
         float32x8_t real_out = _mm256_fmsub_ps(real, cos_val, _mm256_mul_ps(imag, sin_val));
         float32x8_t imag_out = _mm256_fmadd_ps(real, sin_val, _mm256_mul_ps(imag, cos_val));
         //Store back into interleaved format
-        float32x8_t y0 = _mm256_permutex2var_ps(real_out, _mm256_set_epi32(11, 3, 10, 2, 9, 1, 8, 0), imag_out);
-        float32x8_t y1 = _mm256_permutex2var_ps(real_out, _mm256_set_epi32(15, 7, 14, 6, 13, 5, 12, 4), imag_out);
+        __m256i out_mask_vec = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+        float32x8_t real_out_s = _mm256_permutevar8x32_ps(real_out, out_mask_vec);
+        float32x8_t imag_out_s = _mm256_permutevar8x32_ps(imag_out, out_mask_vec);
+        float32x8_t y0 = _mm256_unpacklo_ps(real_out_s, imag_out_s);
+        float32x8_t y1 = _mm256_unpackhi_ps(real_out_s, imag_out_s);
         _mm256_maskstore_ps(output + i, mask0, y0);
         _mm256_maskstore_ps(output + i + 8, mask1, y1);
     }

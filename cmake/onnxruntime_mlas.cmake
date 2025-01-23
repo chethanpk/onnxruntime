@@ -42,10 +42,6 @@ onnxruntime_add_static_library(onnxruntime_mlas
   ${MLAS_SRC_DIR}/flashattn.cpp
   ${MLAS_SRC_DIR}/cast.cpp
   ${MLAS_SRC_DIR}/rotary_embedding.h
-  ${MLAS_SRC_DIR}/rotary_embedding.cpp
-  ${MLAS_SRC_DIR}/rotary_embedding_kernel_avx2.h
-  ${MLAS_SRC_DIR}/rotary_embedding_kernel_avx2.cpp
-  ${MLAS_SRC_DIR}/rotary_embedding_kernel_avx2_fp32.cpp
 )
 
 target_sources(onnxruntime_mlas PRIVATE
@@ -178,6 +174,10 @@ function(setup_mlas_source_for_windows)
       ${MLAS_SRC_DIR}/dgemm.cpp
       ${mlas_platform_srcs_avx}
       ${mlas_platform_srcs_avx2}
+      ${MLAS_SRC_DIR}/rotary_embedding.cpp
+      ${MLAS_SRC_DIR}/rotary_embedding_kernel_avx2.h
+      ${MLAS_SRC_DIR}/rotary_embedding_kernel_avx2.cpp
+      ${MLAS_SRC_DIR}/rotary_embedding_kernel_avx2_fp32.cpp
       ${MLAS_SRC_DIR}/qgemm_kernel_amx.cpp
       ${MLAS_SRC_DIR}/qgemm_kernel_avx2.cpp
       ${MLAS_SRC_DIR}/qgemm_kernel_sse.cpp
@@ -223,6 +223,9 @@ function(setup_mlas_source_for_windows)
       ${MLAS_SRC_DIR}/amd64/TanhKernelFma3.asm
       ${MLAS_SRC_DIR}/amd64/ErfKernelFma3.asm
     )
+
+    set_source_files_properties(${MLAS_SRC_DIR}/rotary_embedding_kernel_avx2_fp32.cpp PROPERTIES COMPILE_FLAGS "-march=x86-64-v3")
+
     if(MSVC_VERSION GREATER_EQUAL 1933)
       target_sources(onnxruntime_mlas PRIVATE
         ${MLAS_SRC_DIR}/amd64/cvtfp16Avx.asm
