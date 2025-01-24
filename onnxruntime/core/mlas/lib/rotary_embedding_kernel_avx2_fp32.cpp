@@ -87,7 +87,6 @@ RopeKernel_Avx2_Impl<true>(
 ) {
     size_t i = 0;
     for (; i + 15 < dim; i += 16) {
-        printf("Big block interleaved\n");
         float32x8_t x0 = _mm256_loadu_ps(input + i);
         float32x8_t x1 = _mm256_loadu_ps(input + i + 8);
         //Load imaginary and real values to seperate non-interleaved vectors
